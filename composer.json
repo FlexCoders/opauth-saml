@@ -1,0 +1,23 @@
+{
+  "name": "flexcoders/opauth-saml",
+  "description": "SAML strategy for Opauth",
+  "keywords": ["authentication","auth","saml"],
+  "homepage": "http://flexcoders.co.uk",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Steve West",
+      "email": "steve.west@flexcoders.co.uk",
+      "homepage": "http://flexcoders.co.uk"
+    }
+  ],
+  "require": {
+    "php": ">=5.2.0",
+    "opauth/opauth": ">=0.2.0"
+  },
+  "autoload": {
+    "psr-0": {
+      "": "."
+    }
+  }
+}
