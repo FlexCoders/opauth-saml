@@ -1,26 +1,32 @@
 <?php
 
-
+/**
+ *
+ * Code adapted from onelogin/php-saml demo code
+ * @link https://github.com/onelogin/php-saml/blob/master/demo1
+ */
 class SamlStrategy extends OpauthStrategy
 {
 
 	public $expects = array(
-		'assertionConsumerService.url',
-		'entityId',
-		'x509cert',
-		'privateKey',
+		'sp.assertionConsumerService',
+		'sp.entityId',
+		'sp.x509cert',
+		'sp.privateKey',
+
+		'idp.entityId',
+		'idp.singleSignOnService',
+		'idp.x509cert',
 	);
 
 	public $optionals = array(
-		'assertionConsumerService.binding',
-		'NameIDFormat',
+		'sp.NameIDFormat',
 		'strict',
 		'debug',
 	);
 
 	public $defaults = array(
-		'assertionConsumerService.binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST',
-		'NameIDFormat' => 'urn:oasis:names:tc:SAML:2.0:nameid-format:unspecified',
+		'sp.NameIDFormat' => 'unspecified',
 		'strict' => false,
 		'debug' => false,
 	);
@@ -30,18 +36,25 @@ class SamlStrategy extends OpauthStrategy
 	 */
 	protected function getSettings()
 	{
-		return $settings = new OneLogin_Saml2_Settings([
-			'strict' => $this->env['strict'],
-			'debug' => $this->env['debug'],
+		return new OneLogin_Saml2_Settings([
+			'strict' => $this->strategy['strict'],
+			'debug' => $this->strategy['debug'],
 			'sp' => [
-				'entityId' => $this->env['entityId'],
+				'entityId' => $this->strategy['sp.entityId'],
 				'assertionConsumerService' => [
-					'url' => $this->env['assertionConsumerService.url'],
-					'binding' => $this->env['assertionConsumerService.binding'],
+					'url' => $this->strategy['sp.assertionConsumerService'],
+					'binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST',
 				],
-				'NameIDFormat' => 'urn:oasis:names:tc:SAML:2.0:nameid-format:unspecified',
-				'x509cert' => $this->env['x509cert'],
-				'privateKey' => $this->env['privateKey'],
+				'NameIDFormat' => 'urn:oasis:names:tc:SAML:2.0:nameid-format:'.$this->strategy['sp.NameIDFormat'],
+				'x509cert' => $this->strategy['sp.x509cert'],
+				'privateKey' => $this->strategy['sp.privateKey'],
+			],
+			'idp' => [
+				'entityId' => $this->strategy['idp.entityId'],
+				'singleSignOnService' => [
+					'url' => $this->strategy['idp.singleSignOnService'],
+					],
+				'x509cert' => $this->strategy['idp.x509cert'],
 			],
 		]);
 	}
@@ -58,14 +71,26 @@ class SamlStrategy extends OpauthStrategy
 		$parameters['RelayState'] = OneLogin_Saml2_Utils::getSelfURLNoQuery();
 		$idpData = $settings->getIdPData();
 		$ssoUrl = $idpData['singleSignOnService']['url'];
-		OneLogin_Saml2_Utils::redirect($ssoUrl, $parameters, true);
+		OneLogin_Saml2_Utils::redirect($ssoUrl, $parameters);
 	}
 
 	/**
 	 * Receives oauth_verifier, requests for access_token and redirect to callback
 	 */
-	public function oauth_callback()
+	public function sso()
 	{
+		$auth = new OneLogin_Saml2_Auth($this->getSettings());
+		$auth->processResponse();
+		$errors = $auth->getErrors();
+		if (!empty($errors)) {
+			print_r('<p>'.implode(', ', $errors).'</p>');
+		}
+		if (!$auth->isAuthenticated()) {
+			echo "<p>Not authenticated</p>";
+			exit();
+		}
+
+		die('adsasdasd');
 		$auth = new OneLogin_Saml2_Auth($this->getSettings());
 
 		if (!isset($_SESSION['samlUserdata'])) {
@@ -83,6 +108,30 @@ class SamlStrategy extends OpauthStrategy
 		} else {
 			echo "<p>You don't have any attribute</p>";
 		}
+
+		die();
+	}
+
+	public function generate_metadata()
+	{
+		$settings = $this->getSettings();
+		$metadata = $settings->getSPMetadata();
+		//$errors = $settings->validateMetadata($metadata);
+
+//		if (empty($errors))
+//		{
+			header('Content-Type: text/xml');
+			echo $metadata;
+//		}
+//		else
+//		{
+//			throw new OneLogin_Saml2_Error(
+//				'Invalid SP metadata: '.implode(', ', $errors),
+//				OneLogin_Saml2_Error::METADATA_SP_INVALID
+//			);
+//		}
+
+		die();
 	}
 
 }
